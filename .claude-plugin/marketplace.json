@@ -1,0 +1,21 @@
+{
+  "name": "ninjaproger-skills",
+  "owner": {
+    "name": "ninjaproger"
+  },
+  "metadata": {
+    "description": "Personal skill marketplace for iOS development and simulator automation",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "ios-simulator",
+      "description": "Automate iOS simulators: build, install, launch, terminate, and navigate (tap, swipe, scroll, type text, open URLs, press HOME/LOCK/SIRI) using idb and xcrun simctl. All navigation commands use idb ui describe-all before and after each action to validate UI state and obtain exact tap coordinates.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/ios-simulator"
+      ]
+    }
+  ]
+}
