@@ -253,7 +253,8 @@ def cmd_list_apps(args) -> None:
     """List installed apps."""
     cmd = ["idb", "list-apps", "--json", "--fetch-process-state"] + udid_flags(args.udid)
     result = run(cmd)
-    apps = json.loads(result.stdout)
+    # idb outputs one JSON object per line (NDJSON), not a JSON array
+    apps = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     print(f"\n{'Bundle ID':<50}  {'State':<12}  Name")
     print("─" * 80)
     for app in apps:
@@ -270,11 +271,11 @@ def cmd_list_apps(args) -> None:
 def cmd_tap(args) -> None:
     """Tap at (x, y) with pre/post UI validation."""
     def action():
-        cmd = ["idb", "ui", "tap", str(args.x), str(args.y)] + udid_flags(args.udid)
+        cmd = ["idb", "ui", "tap", str(int(args.x)), str(int(args.y))] + udid_flags(args.udid)
         if args.duration:
             cmd += ["--duration", str(args.duration)]
         run(cmd)
-        print(f"Tapped ({args.x}, {args.y})")
+        print(f"Tapped ({int(args.x)}, {int(args.y)})")
 
     with_ui_hooks(args.udid, f"tap({args.x}, {args.y})", action)
 
