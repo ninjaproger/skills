@@ -75,6 +75,33 @@ Both TCA skills derive their patterns from the [Sky107](https://github.com/ninja
 
 ---
 
+### `codex-agent`
+
+Delegate complex, multi-step coding tasks to the [OpenAI Codex CLI](https://developers.openai.com/codex/cli/reference) agent running in the background.
+
+Use this skill when you want to **offload autonomous work to Codex** — letting it read files, write code, and run shell commands without interrupting your session.
+
+**Capabilities:**
+- **TCA feature development** — prompt Codex to implement a full reducer + view + tests + Package.swift registration, pointing it at an existing feature for style reference
+- **iOS Simulator automation** — prompt Codex to navigate the simulator using `ios_sim.py` (tap, scroll, screenshot, verify UI state)
+- **Combined flows** — implement a feature *and* verify it in the simulator in a single Codex run
+
+```bash
+# Implement a TCA feature in the background
+codex exec --full-auto --cd /path/to/your/project \
+  "Add a Bookmarks feature following the style of Sources/Flashcards/. \
+   Create reducer, view (4 previews), tests, and register in Package.swift."
+
+# Automate the simulator
+codex exec --full-auto \
+  "Using python path/to/ios_sim.py, open the app on the booted simulator, \
+   navigate to the Settings screen, and take a screenshot."
+```
+
+**Requirements:** `npm install -g @openai/codex` (or `brew install openai-codex`)
+
+---
+
 ## Adding a Skill
 
 1. Scaffold: `python ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/<version>/skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/`

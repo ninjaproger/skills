@@ -6,13 +6,11 @@ description: >
   reducer, adding SwiftUI previews, or writing TCA tests. Covers the full development workflow:
   reading the existing codebase, creating reducer + view files, wiring navigation, writing SwiftUI
   previews for all meaningful states (loaded, empty, error, and feature-specific variants), and
-  writing TestStore tests. Reference project: /Users/ninjaproger/Sky107. Always explore the target
-  module before writing code to match its existing style and conventions.
+  writing TestStore tests. Always explore the target module before writing code to match its
+  existing style and conventions.
 ---
 
 # TCA Feature Development
-
-Reference project: `/Users/ninjaproger/Sky107` (Sky107Kit SPM package).
 
 ## Workflow
 
@@ -26,10 +24,10 @@ Reference project: `/Users/ninjaproger/Sky107` (Sky107Kit SPM package).
 ## Explore Before Writing
 
 Before implementing any feature, read:
-- The module's existing reducer and view (understand current state shape)
+- An existing feature's reducer + view (understand current patterns)
 - The parent module (understand how this feature is composed in)
-- `Services/` for available dependency clients
-- `Models/` for the relevant data types
+- `Sources/Services/` for available dependency clients
+- `Sources/Models/` for the relevant data types
 
 ## Reducer Checklist
 
