@@ -43,6 +43,15 @@
       "skills": [
         "./skills/codex-agent"
       ]
+    },
+    {
+      "name": "gemini-agent",
+      "description": "Delegate multi-step coding tasks to the Google Gemini CLI agent running in the background. Supports TCA feature development (new reducer/view/tests in a modular iOS app) and iOS Simulator automation via ios_sim.py.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/gemini-agent"
+      ]
     }
   ]
 }
