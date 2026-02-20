@@ -34,6 +34,15 @@
       "skills": [
         "./skills/tca-architect"
       ]
+    },
+    {
+      "name": "codex-agent",
+      "description": "Delegate multi-step coding tasks to the OpenAI Codex CLI agent running in the background. Supports TCA feature development (new reducer/view/tests in a modular iOS app) and iOS Simulator automation via ios_sim.py.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/codex-agent"
+      ]
     }
   ]
 }
