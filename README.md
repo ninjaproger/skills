@@ -102,6 +102,34 @@ codex exec --full-auto \
 
 ---
 
+### `gemini-agent`
+
+Delegate complex, multi-step coding tasks to the [Google Gemini CLI](https://geminicli.com/docs/cli/cli-reference/) agent running in the background.
+
+Use this skill when you want to **offload autonomous work to Gemini** — letting it read files, write code, and run shell commands without interrupting your session.
+
+**Capabilities:**
+- **TCA feature development** — pipes tca-developer skill files directly into Gemini's context, then has it implement a full reducer + view + tests + Package.swift registration
+- **iOS Simulator automation** — pipes ios-simulator skill files and has Gemini navigate the simulator using `ios_sim.py`
+- **Combined flows** — implement a feature *and* verify it in the simulator in a single Gemini run
+
+```bash
+# Implement a TCA feature in the background
+cd /path/to/your/project && (
+  cat path/to/tca-developer/SKILL.md
+  echo "---"
+  echo "Task: Add a Bookmarks feature following the style of Sources/Flashcards/"
+) | gemini --approval-mode yolo
+
+# Automate the simulator
+cat path/to/ios-simulator/SKILL.md | gemini --approval-mode yolo \
+  "Navigate the app to the Settings screen and take a screenshot"
+```
+
+**Requirements:** `npm install -g @google/gemini-cli` (or `brew install gemini-cli`)
+
+---
+
 ## Adding a Skill
 
 1. Scaffold: `python ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/<version>/skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/`
