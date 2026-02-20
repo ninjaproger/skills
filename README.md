@@ -1,13 +1,13 @@
 # skills
 
-A personal Claude Code plugin marketplace with skills for iOS development and automation.
+A Claude Code plugin marketplace with useful skills for iOS development and automation.
 
 ## Installation
 
 Register this repository as a Claude Code plugin marketplace:
 
 ```
-/plugin marketplace add <git-remote-url>
+/plugin marketplace add https://github.com/ninjaproger/skills
 ```
 
 Then browse and install skills via `/plugin` → **Browse and install plugins** → `ninjaproger-skills`.
