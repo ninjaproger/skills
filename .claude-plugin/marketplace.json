@@ -16,6 +16,15 @@
       "skills": [
         "./skills/ios-simulator"
       ]
+    },
+    {
+      "name": "tca-architect",
+      "description": "Architect modular iOS apps using Swift Package Manager and The Composable Architecture (TCA). Covers module decomposition, Package.swift dependency graphs, TCA reducer/navigation/delegate patterns, and swift-dependencies injection.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/tca-architect"
+      ]
     }
   ]
 }
