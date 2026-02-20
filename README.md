@@ -42,6 +42,19 @@ python skills/ios-simulator/scripts/ios_sim.py scroll down --udid <UDID>
 
 **Requirements:** `pip install fb-idb` · `brew install idb-companion` · Xcode
 
+### `tca-developer`
+
+Implement new features in an existing modular TCA+SPM iOS app, following the exact conventions of the codebase.
+
+**Capabilities:**
+- **Reducer implementation** — `@Reducer`, `@ObservableState`, async effects, `@Presents` navigation, delegate actions
+- **View implementation** — four-state body (loading/error/empty/content), navigation wiring, `Toggle` bindings, private sub-views, file-local components
+- **SwiftUI previews** — at least one preview per meaningful state: loading, loaded, empty, error, and feature-specific variants (completed, failed, etc.)
+- **Tests** — `TestStore` setup, dependency mocking, async flow assertions, computed property tests, idempotency tests
+- **Registration** — `Package.swift` target additions and `AppCore` tab wiring
+
+Patterns are derived from a real-world reference project ([Sky107](https://github.com/ninjaproger/Sky107)).
+
 ### `tca-architect`
 
 Architect modular iOS apps using [Swift Package Manager](https://www.swift.org/documentation/package-manager/) and [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) (TCA).

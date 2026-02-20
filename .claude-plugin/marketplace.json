@@ -18,6 +18,15 @@
       ]
     },
     {
+      "name": "tca-developer",
+      "description": "Develop new features in a modular TCA+SPM iOS app: reducer, view with SwiftUI previews for all states, tests, Package.swift registration, and AppCore wiring. Follows patterns from the Sky107 reference project.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/tca-developer"
+      ]
+    },
+    {
       "name": "tca-architect",
       "description": "Architect modular iOS apps using Swift Package Manager and The Composable Architecture (TCA). Covers module decomposition, Package.swift dependency graphs, TCA reducer/navigation/delegate patterns, and swift-dependencies injection.",
       "source": "./",
