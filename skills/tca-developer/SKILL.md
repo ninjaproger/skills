@@ -54,53 +54,14 @@ Before implementing any feature, read:
 
 ## Preview Rules
 
-Every view **must** have at minimum:
-1. A **default/loading** preview — `State()` with live reducer (triggers `.onAppear`)
-2. A **content** preview — pre-built state with representative sample data
-3. An **empty state** preview — empty collections, zero-progress state
-4. Any **feature-specific variants** that render meaningfully different UI (error, completed, failed, passed, etc.)
-
-```swift
-// Pattern A — live reducer, fires onAppear
-#Preview("FeatureName") {
-    NavigationStack {
-        FeatureView(store: Store(initialState: .init()) { FeatureReducer() })
-    }
-}
-
-// Pattern B — pre-built state with data
-#Preview("FeatureName - Loaded") {
-    var state = FeatureReducer.State()
-    state.items = [.sample1, .sample2]
-    return NavigationStack {
-        FeatureView(store: Store(initialState: state) { FeatureReducer() })
-    }
-}
-
-// Pattern C — empty state
-#Preview("FeatureName - Empty") {
-    var state = FeatureReducer.State()
-    state.items = []
-    state.isLoading = false
-    return NavigationStack {
-        FeatureView(store: Store(initialState: state) { FeatureReducer() })
-    }
-}
-
-// Pattern D — error state
-#Preview("FeatureName - Error") {
-    var state = FeatureReducer.State()
-    state.loadError = "Failed to load data"
-    return NavigationStack {
-        FeatureView(store: Store(initialState: state) { FeatureReducer() })
-    }
-}
-```
+Every view **must** have at minimum 4 previews: **loading** (live reducer, fires `.onAppear`), **content** (pre-built state with sample data), **empty**, and any **feature-specific variants** (error, completed, failed, etc.).
 
 - Wrap in `NavigationStack { }` when the view uses `.navigationTitle` or `.navigationDestination`
-- Preview name format: `"FeatureName - StateName"` e.g. `"Quiz - Partially Answered"`
+- Name format: `"FeatureName - StateName"` e.g. `"Quiz - Partially Answered"`
 - Do **not** use `withDependencies` in previews — use the live reducer directly
 - Add `static var sample: Self` / `static var samples: [Self]` on model types for preview data
+
+See `references/feature-template.md` for complete `#Preview` block templates (Patterns A–D).
 
 ## Key Decisions
 

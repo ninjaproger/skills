@@ -142,25 +142,6 @@ python scripts/ios_sim.py build --workspace MyApp.xcworkspace --scheme MyApp
 
 ---
 
-## Requirements
-
-```bash
-# idb CLI (Python client)
-pip install fb-idb
-
-# idb companion (Homebrew, macOS only)
-brew tap facebook/fb
-brew install idb-companion
-
-# Xcode + simulators (for build and xcrun simctl)
-xcode-select --install
-```
-
-The `idb` CLI auto-connects to booted simulators. Pass `--udid` when multiple simulators are booted.
-Use `xcrun simctl list devices` or `python scripts/ios_sim.py list` to find UDIDs.
-
----
-
 ## References
 
 - **`references/describe-all-format.md`** — Full JSON schema for `idb ui describe-all` output, coordinate math, element field reference, and search patterns. Read this when building custom element-finding logic.

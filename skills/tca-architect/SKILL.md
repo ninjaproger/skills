@@ -13,8 +13,6 @@ description: >
 
 # TCA + SPM Modular Architecture
 
-Reference project: `/Users/ninjaproger/Sky107` (FAA Part 107 drone pilot study app).
-
 ## Project Layout
 
 ```
