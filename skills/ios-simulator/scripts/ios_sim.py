@@ -178,6 +178,17 @@ def cmd_shutdown(args) -> None:
     print("Done.")
 
 
+def cmd_appearance(args) -> None:
+    """Get or set the UI appearance (light/dark) of the simulator."""
+    udid = args.udid or "booted"
+    if args.mode:
+        run(["xcrun", "simctl", "ui", udid, "appearance", args.mode], capture=False)
+        print(f"Appearance set to: {args.mode}")
+    else:
+        result = run(["xcrun", "simctl", "ui", udid, "appearance"])
+        print(f"Current appearance: {result.stdout.strip()}")
+
+
 # ---------------------------------------------------------------------------
 # Build (xcodebuild)
 # ---------------------------------------------------------------------------
@@ -521,6 +532,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("shutdown", help="Shutdown a simulator")
     p.add_argument("udid", help="Simulator UDID")
 
+    p = sub.add_parser("appearance", help="Get or set simulator UI appearance (light/dark)")
+    p.add_argument("mode", nargs="?", choices=["light", "dark"],
+                   help="Set to 'light' or 'dark' (omit to get current)")
+    p.add_argument("--udid", help="Simulator UDID (default: booted)")
+
     # ---- Build ----
     p = sub.add_parser("build", help="Build app for simulator via xcodebuild")
     grp = p.add_mutually_exclusive_group(required=True)
@@ -612,6 +628,7 @@ COMMANDS = {
     "list": cmd_list,
     "boot": cmd_boot,
     "shutdown": cmd_shutdown,
+    "appearance": cmd_appearance,
     "build": cmd_build,
     "install": cmd_install,
     "launch": cmd_launch,
