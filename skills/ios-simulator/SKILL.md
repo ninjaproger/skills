@@ -1,12 +1,12 @@
 ---
 name: ios-simulator
 description: >
-  Automate iOS simulators: build, install, launch, terminate, and navigate (tap, swipe, scroll,
-  type text, press keys, open URLs, press HOME/LOCK/SIRI) using idb and xcrun simctl.
-  Use when asked to interact with an iOS app in the simulator, automate UI flows, run a
-  navigation sequence, take screenshots, or inspect the UI accessibility tree.
-  All navigation commands use `idb ui describe-all` before and after each action to validate
-  the current UI state and obtain exact tap coordinates.
+  Automate iOS simulators: build, install, launch, terminate, set appearance (light/dark mode),
+  and navigate (tap, swipe, scroll, type text, press keys, open URLs, press HOME/LOCK/SIRI)
+  using idb and xcrun simctl. Use when asked to interact with an iOS app in the simulator,
+  automate UI flows, run a navigation sequence, take screenshots, switch dark/light mode,
+  or inspect the UI accessibility tree. All navigation commands use `idb ui describe-all`
+  before and after each action to validate the current UI state and obtain exact tap coordinates.
 ---
 
 # iOS Simulator Skill
@@ -49,6 +49,11 @@ python scripts/ios_sim.py openurl "myapp://home" --udid <UDID>
 
 # 11. Screenshot
 python scripts/ios_sim.py screenshot /tmp/screen.png --udid <UDID>
+
+# 12. Set appearance
+python scripts/ios_sim.py appearance dark --udid <UDID>
+python scripts/ios_sim.py appearance light --udid <UDID>
+python scripts/ios_sim.py appearance          # get current (uses booted simulator)
 ```
 
 ---
@@ -78,6 +83,7 @@ The `tap-element` command uses the pre-hook describe-all to dynamically locate t
 | `list` | List all available simulators with UDIDs and boot states |
 | `boot <udid>` | Boot a simulator |
 | `shutdown <udid>` | Shut down a simulator |
+| `appearance [light\|dark] [--udid U]` | Get or set UI appearance; omit mode to read current value |
 
 ### App Management
 
