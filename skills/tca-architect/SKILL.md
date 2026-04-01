@@ -17,21 +17,26 @@ description: >
 
 ```
 MyApp/
-├── MyApp/                   # Xcode app target — THIN HOST ONLY (~16 lines)
-│   └── MyApp.swift          # @main — creates one Store, renders root view
-└── MyAppKit/                # Single SPM package containing ALL code
+├── MyApp/                      # Xcode app target — THIN HOST ONLY (~16 lines)
+│   └── MyApp.swift             # @main — creates one Store, renders root view
+└── MyAppKit/                   # Single SPM package containing ALL code
     ├── Package.swift
     ├── Sources/
-    │   ├── AppCore/         # Root reducer + root view, composes all tab features
-    │   ├── DesignSystem/    # Tokens, colors, fonts — no TCA dependency
-    │   ├── Models/          # Pure Swift value types — no TCA, no UI
-    │   ├── Services/        # Dependency clients + actors — no UI
-    │   └── <Feature>/       # One module per feature (tab or sub-feature)
+    │   ├── AppCore/            # Root reducer + root view, composes all tab features
+    │   ├── DesignSystem/       # Tokens, colors, fonts — no TCA dependency
+    │   ├── Models/             # Pure Swift value types — no TCA, no UI
+    │   ├── Services/           # Dependency clients + actors — no UI
+    │   ├── <SharedComponent>/  # Reusable TCA reducer used by 2+ features (Quiz, ChapterStep…)
+    │   └── <Feature>/          # One module per tab/top-level feature
+    │       └── Resources/      # JSON, images owned by this module (.process("Resources"))
     └── Tests/
         └── <Feature>Tests/
 ```
 
-**Rule**: The Xcode target never contains business logic. All code lives in the SPM package and is fully testable without a simulator.
+**Rules:**
+- The Xcode target never contains business logic. All code lives in the SPM package.
+- No file header comments — files start directly with `import` statements.
+- Each module that owns static resources (`Resources/`) must expose a public `<Module>Bundle.swift` with `public static let bundle = Bundle.module` so sibling modules can access those resources without a circular dependency.
 
 ## Workflow
 
@@ -126,7 +131,19 @@ public struct AppCoreView: View {
 - **`Scope` before `Reduce`** — child reducers always run before parent logic
 - **Delegate actions** for child→parent communication — see `references/tca-patterns.md`
 - **`@Reducer enum Destination`** for push/sheet/alert navigation — see `references/tca-patterns.md`
+- **Dual `@Presents`** for overlay + navigation simultaneously — see `references/tca-patterns.md`
 - **`@DependencyClient` or manual struct** for services — see `references/dependency-patterns.md`
+- **Shared Component modules** for reusable TCA reducers (used by 2+ features) — see `references/module-design.md`
+- **Bundle parameter** when a child reducer loads resources from a parent module's `Resources/` — see `references/tca-patterns.md`
+
+## Non-Negotiable Defaults
+
+**UI:** Vanilla SwiftUI always. Use `UIViewRepresentable` only when SwiftUI has no equivalent (e.g. `MKMapView`, `WKWebView`, `MTKView`). Never wrap a UIKit component just for styling convenience.
+
+**Concurrency (in priority order):**
+1. `async/await` + `AsyncStream` + Swift actors — always try this first
+2. Combine — only if the API you're wrapping only exposes a `Publisher` and no async equivalent exists
+3. GCD / `NSLock` / `DispatchQueue` — only as a last resort for legacy C/ObjC callback-only APIs
 
 ## Reference Files
 

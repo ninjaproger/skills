@@ -74,6 +74,8 @@ See `references/feature-template.md` for complete `#Preview` block templates (Pa
 | Where does error text live? | `state.loadError: String?` via `error.localizedDescription` |
 | How to cancel in-flight effects? | `.cancellable(id:, cancelInFlight: true)` |
 | Where do sub-view components live? | File-private structs in the same `.swift` file |
+| Should I use `UIViewRepresentable`? | Only when SwiftUI has no equivalent (e.g. `MKMapView`, `WKWebView`). Never for styling convenience. |
+| Which concurrency primitive? | `async/await` + `AsyncStream` first; Combine only if the API has no async alternative; GCD/NSLock only for legacy C/ObjC callbacks |
 
 ## Reference Files
 

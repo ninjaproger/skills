@@ -19,7 +19,7 @@
     },
     {
       "name": "tca-developer",
-      "description": "Develop new features in a modular TCA+SPM iOS app: reducer, view with SwiftUI previews for all states, tests, Package.swift registration, and AppCore wiring. Follows patterns from the Sky107 reference project.",
+      "description": "Develop new features in a modular TCA+SPM iOS app: reducer, view with SwiftUI previews for all states, tests, Package.swift registration, and AppCore wiring.",
       "source": "./",
       "strict": false,
       "skills": [

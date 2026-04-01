@@ -2,11 +2,13 @@
 
 ## Module Decomposition Strategy
 
-### Infrastructure Layer (no TCA, no UI)
+All code lives in one SPM package with four strict layers. Higher layers depend on lower layers — never the reverse.
+
+### Layer 1 — Infrastructure (no TCA, no UI)
 
 | Module | Contents | Dependencies |
 |--------|----------|-------------|
-| `DesignSystem` | Colors, fonts, spacing constants, shared UI helpers | none |
+| `DesignSystem` | Colors, fonts, spacing tokens, shared UI helpers | none |
 | `Models` | Pure Swift value types (`struct`/`enum`) with `Codable`, `Equatable`, `Sendable`, `Identifiable` | optional: SQLiteData |
 | `Services` | Dependency clients (interfaces) + actor-based databases | Models, swift-dependencies |
 
@@ -16,36 +18,55 @@
 - `Services` never imports TCA or SwiftUI — it defines interfaces, not implementations
 - Live implementations go in `Services/<Client>+Live.swift`
 
-### Feature Layer (TCA + SwiftUI)
+### Layer 2 — Shared Components (TCA + SwiftUI, no specific feature knowledge)
 
-One SPM target per feature. Features may be:
+Reusable TCA reducers + views used by 2 or more feature modules. They live in their own SPM target.
 
-- **Tab features** — top-level tabs in `AppCore` (e.g., `Home`, `Settings`, `Profile`)
-- **Sub-features** — navigated to from a parent feature (e.g., `ItemDetail`, `EditForm`)
-- **Shared feature components** — reusable TCA reducers used by multiple parents (e.g., `Quiz`, `ChapterStep` in Sky107)
-- **Stub features** — placeholder tab that reserves its slot but has no logic yet (use `EmptyReducer()`)
+| When to create | Example |
+|----------------|---------|
+| A reducer+view is used by 2+ feature modules | `Quiz` used by `CourseChapter` |
+| A sub-feature has its own nested navigation and needs isolated testing | `ChapterStep`, `SectionalChart` |
+| A generic component drives content loaded from outside (bundle param) | `CourseChapter` receives a `bundle: Bundle` |
 
-### Dependency Graph Rules
+**Rules:**
+- Shared components MUST NOT import any Feature module (no upward dependency)
+- Shared components MAY import other shared components they build on
+- If a component is only ever used by one feature, put it inside that feature's target instead
+
+### Layer 3 — Feature Modules (TCA + SwiftUI)
+
+One SPM target per top-level tab or independently navigable feature:
+
+- **Tab features** — top-level tabs in `AppCore` (e.g., `Course`, `Settings`, `Flashcards`)
+- **Stub features** — placeholder tab with no logic yet (use `EmptyReducer()`)
+
+Features own their content data. Any JSON files, images, or other assets they need go in `<Feature>/Resources/` with `resources: [.process("Resources")]` in `Package.swift`.
+
+### Layer 4 — AppCore
+
+Single module that imports every tab feature and wires them into a `TabView`. No business logic — only composition and cross-tab delegate handling.
+
+### Dependency Graph
 
 ```
-DesignSystem ←─ (no deps)
-Models       ←─ DesignSystem? (rarely), external data libs
-Services     ←─ Models, swift-dependencies
-<Feature>    ←─ DesignSystem, Models, Services, <child features>, ComposableArchitecture
-AppCore      ←─ DesignSystem, <all tab features>, ComposableArchitecture, SwiftUINavigation
+DesignSystem  ←─ (no deps)
+Models        ←─ (no deps beyond external Codable/data libs)
+Services      ←─ Models, swift-dependencies
+<Shared>      ←─ DesignSystem, Models, Services, ComposableArchitecture
+<Feature>     ←─ DesignSystem, Models, Services, <shared components it needs>, ComposableArchitecture
+AppCore       ←─ DesignSystem, <all tab features>, ComposableArchitecture, SwiftUINavigation
 ```
 
-**No circular dependencies.** A feature may depend on another feature only if it is its direct parent in the navigation hierarchy. Shared components (e.g., `Quiz`) should be their own module depended on by multiple features.
+**No circular dependencies.** A shared component may depend on another shared component only if it is a lower-level building block. Feature modules must not import each other.
 
-### When to Split a Feature into Sub-Modules
+### When to Split
 
-Split when:
-- A reducer is > ~300 lines
-- A UI component is reused by multiple parent features
-- A navigation destination has its own destinations (nested navigation)
-- You want to test it in isolation
+**Create a new module when:**
+- A reducer+view is reused by 2+ feature modules → Shared Component
+- A reducer exceeds ~300 lines → consider splitting destination into its own module
+- A navigation destination has its own nested destinations → isolated testability warrants a module
 
-Keep together when:
+**Keep together when:**
 - A view + reducer together are < ~200 lines
 - The feature is never reused
 - It's a stub/placeholder
@@ -62,16 +83,17 @@ let package = Package(
     name: "MyAppKit",
     platforms: [.iOS(.v17)],
     products: [
-        // Infrastructure
-        .library(name: "AppCore",     targets: ["AppCore"]),
+        // MARK: Infrastructure
+        .library(name: "AppCore",      targets: ["AppCore"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
-        .library(name: "Models",      targets: ["Models"]),
-        .library(name: "Services",    targets: ["Services"]),
-        // Feature modules
-        .library(name: "Home",        targets: ["Home"]),
-        .library(name: "Settings",    targets: ["Settings"]),
-        // Sub-features
-        .library(name: "ItemDetail",  targets: ["ItemDetail"]),
+        .library(name: "Models",       targets: ["Models"]),
+        .library(name: "Services",     targets: ["Services"]),
+        // MARK: Shared Components
+        .library(name: "Quiz",         targets: ["Quiz"]),
+        .library(name: "ItemStep",     targets: ["ItemStep"]),
+        // MARK: Feature Modules
+        .library(name: "Home",         targets: ["Home"]),
+        .library(name: "Settings",     targets: ["Settings"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.17.0"),
@@ -87,31 +109,37 @@ let package = Package(
 
         .target(name: "Services", dependencies: [
             "Models",
-            .product(name: "Dependencies",      package: "swift-dependencies"),
+            .product(name: "Dependencies",       package: "swift-dependencies"),
             .product(name: "DependenciesMacros", package: "swift-dependencies"),
         ]),
 
-        // MARK: - Sub-features
-        .target(name: "ItemDetail", dependencies: [
+        // MARK: - Shared Components
+        // Reusable TCA reducers — no feature-specific knowledge
+        .target(name: "Quiz", dependencies: [
             "DesignSystem", "Models", "Services",
             .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
         ]),
 
-        // MARK: - Tab Features
-        .target(name: "Home", dependencies: [
-            "DesignSystem", "Models", "Services", "ItemDetail",
+        .target(name: "ItemStep", dependencies: [
+            "DesignSystem", "Models", "Services",
             .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
         ]),
 
-        .target(
-            name: "Settings",
-            dependencies: [
-                "DesignSystem", "Models", "Services",
-                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
-        ),
+        // MARK: - Feature Modules
+        // resources: [.process("Resources")] whenever the module owns JSON/images
+        .target(name: "Home", dependencies: [
+            "DesignSystem", "Models", "Services",
+            "Quiz",       // shared component
+            "ItemStep",   // shared component
+            .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+        ], resources: [.process("Resources")]),  // owns home-content.json etc.
 
-        // MARK: - App Core
+        .target(name: "Settings", dependencies: [
+            "DesignSystem", "Models", "Services",
+            .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+        ]),
+
+        // MARK: - AppCore
         .target(name: "AppCore", dependencies: [
             "DesignSystem", "Home", "Settings",
             .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
@@ -123,8 +151,8 @@ let package = Package(
             "Home",
             .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
         ]),
-        .testTarget(name: "SettingsTests", dependencies: [
-            "Settings",
+        .testTarget(name: "QuizTests", dependencies: [
+            "Quiz",
             .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
         ]),
         .testTarget(name: "ServicesTests", dependencies: [
@@ -136,20 +164,17 @@ let package = Package(
 ```
 
 **Notes:**
-- One product and one target per module (same name)
-- Add `resources: [.process("Resources")]` to targets that embed JSON/images via `Bundle.module`
-- `SwiftUINavigation` is only needed by `AppCore` (or features using `NavigationStack` bindings)
-- `DependenciesTestSupport` in test targets enables `withDependencies` in tests
+- One product + one target per module (same name)
+- Add `resources: [.process("Resources")]` to any target that bundles JSON/images
+- Create a `<Module>Bundle.swift` in every module with a `Resources/` folder (see below)
+- `SwiftUINavigation` only needed by `AppCore`
+- `DependenciesTestSupport` in test targets enables `withDependencies`
 
 ---
 
-## Accessing Bundle.module Across Modules
+## Bundle.module Accessor
 
-When module A owns static resources (JSON files, images) and module B also needs them:
-
-**Problem:** `Bundle.module` only works inside the module that owns the `Resources/` directory.
-
-**Solution:** Module A exposes a public bundle accessor:
+**Rule:** Every module with a `Resources/` folder **must** expose a public bundle accessor. `Bundle.module` only resolves correctly inside the module that owns the `Resources/` directory.
 
 ```swift
 // Sources/Home/HomeBundle.swift
@@ -158,7 +183,9 @@ public enum HomeBundle {
 }
 ```
 
-Module B (which depends on A) accesses it as `HomeBundle.bundle`. No circular dependency needed.
+Any module that depends on `Home` accesses `HomeBundle.bundle`. No circular dependency needed.
+
+This is also how you pass a bundle into child reducers that load content from the parent module's resources (see `tca-patterns.md` § Bundle parameter pattern).
 
 ---
 

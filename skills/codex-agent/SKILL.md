@@ -22,26 +22,24 @@ codex exec --full-auto --cd [PROJECT_ROOT] \
 
 ---
 
-## Check & Update Skills
+## Sibling Skill Paths
+
+This skill is part of a plugin. The other skills (`tca-developer`, `tca-architect`, `ios-simulator`)
+are installed in the **same plugin directory** as this skill.
+
+Derive their absolute paths by replacing the last path component of this skill's base directory:
+
+- This skill's base: `.../skills/codex-agent/`
+- tca-developer:     `.../skills/tca-developer/`
+- ios-simulator:     `.../skills/ios-simulator/`
+
+Use the resolved absolute path wherever `<SKILL_PATH>` appears below.
 
 Codex registers skills by file path in `~/.codex/config.toml`. When the path points to the source
 skill directory, it always reads the latest SKILL.md from disk — no explicit update step needed.
-The only check needed is: is the skill registered and enabled?
 
-```bash
-codex exec /skills   # lists all installed skills
-```
-
-**If tca-developer is missing**, open a Codex session and run:
-`$skill-installer install [TCA_DEVELOPER_BASE]`
-
-**ios-simulator** (only when simulator testing is requested):
-
-```bash
-codex exec /skills   # look for ios-simulator
-```
-
-If missing, open a Codex session and run: `$skill-installer install [IOS_SIMULATOR_BASE]`
+To check which skills are registered, open an interactive Codex session and run `/skills`.
+To install a missing skill, open an interactive Codex session and run `$skill-installer install <SKILL_PATH>`.
 
 ---
 
@@ -70,10 +68,13 @@ Identify `[REFERENCE_FEATURE]` by listing `Sources/` and picking the nearest exi
 
 ### iOS Simulator Automation
 
+The `ios_sim.py` script is at `<ios-simulator-skill-path>/scripts/ios_sim.py`. Resolve this path
+from this skill's base directory before running.
+
 ```bash
 codex exec --full-auto \
   "Use the ios-simulator skill to [TASK]. \
-   Simulator script: [IOS_SIMULATOR_BASE]/scripts/ios_sim.py. Print a summary when done."
+   Simulator script: <IOS_SIMULATOR_SKILL_PATH>/scripts/ios_sim.py. Print a summary when done."
 ```
 
 ---
@@ -85,7 +86,7 @@ codex exec --full-auto --cd [PROJECT_ROOT] \
   "Use the tca-developer skill to implement [FEATURE_NAME]. \
    Validate with: [TEST_COMMAND]. \
    Then use the ios-simulator skill to verify the UI. \
-   Simulator script: [IOS_SIMULATOR_BASE]/scripts/ios_sim.py. Print a summary."
+   Simulator script: <IOS_SIMULATOR_SKILL_PATH>/scripts/ios_sim.py. Print a summary."
 ```
 
 ---

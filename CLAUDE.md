@@ -8,9 +8,19 @@ This repository is a Claude Code plugin marketplace (`ninjaproger-skills`) conta
 
 ## Marketplace Architecture
 
-`.claude-plugin/marketplace.json` lists plugins. Each plugin entry has a `skills` array of paths to skill directories. The current single plugin (`ios-simulator`) points to `./skills/ios-simulator`.
+`.claude-plugin/marketplace.json` lists plugins. Each plugin entry has a `skills` array of paths to skill directories. Current plugins:
+
+| Plugin | Skill directory |
+|--------|----------------|
+| `ios-simulator` | `./skills/ios-simulator` |
+| `tca-developer` | `./skills/tca-developer` |
+| `tca-architect` | `./skills/tca-architect` |
+| `codex-agent` | `./skills/codex-agent` |
+| `gemini-agent` | `./skills/gemini-agent` |
 
 Skill directories must contain `SKILL.md` with YAML frontmatter (`name` in kebab-case, `description`). Optional subdirectories: `scripts/` (executable code), `references/` (docs loaded into context), `assets/` (output templates).
+
+**Sibling skill paths:** Agent skills (`codex-agent`, `gemini-agent`) reference other skills in this plugin. They derive sibling paths at runtime from their own base directory — no hardcoded paths.
 
 ## Common Commands
 
