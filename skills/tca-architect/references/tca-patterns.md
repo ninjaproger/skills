@@ -8,6 +8,8 @@
 5. [Feature Composition with Scope](#5-feature-composition-with-scope)
 6. [Alerts](#6-alerts)
 7. [Testing with TestStore](#7-testing-with-teststore)
+8. [Dual @Presents — overlay + navigation simultaneously](#8-dual-presents--overlay--navigation-simultaneously)
+9. [Bundle parameter for resource loading](#9-bundle-parameter-for-resource-loading)
 
 ---
 
@@ -216,6 +218,28 @@ case .loadItems:
 
 case .cancelLoad:
     return .cancel(id: CancelID.load)
+```
+
+**Long-running observation with `AsyncStream`:**
+
+Use when a dependency pushes values over time (location, cache stats, sensor data, server-sent events). The stream is cancelled automatically when `.ifLet` nils the presented state — never send a manual cancel action from `.onDisappear`.
+
+```swift
+// In the reducer:
+enum CancelID { case observation }
+
+case .onAppear:
+    return .run { [client = locationClient] send in
+        for await location in client.streamLocation() {
+            await send(.locationUpdated(location))
+        }
+    }
+    .cancellable(id: CancelID.observation)
+
+// TCA's .ifLet / Scope auto-cancels the effect when state is nilled.
+// Do NOT send an .onDisappear action from the view to trigger cancellation —
+// that action arrives after state is already nil and triggers the
+// "ifLet received a presentation action when destination state was absent" warning.
 ```
 
 ---
@@ -473,3 +497,110 @@ import Testing
 - `store.exhaustivity = .off` — skip verifying unrelated state changes
 - `await store.receive(\.delegate.deleted)` — verify delegate action was sent
 - `$0.isLoading = true` in send/receive closure — assert exact state mutation
+
+---
+
+## 8. Dual @Presents — overlay + navigation simultaneously
+
+Use when a feature can have an active navigation destination (e.g. a step detail view) AND needs to open a fullscreen overlay (e.g. a map chart) at the same time. Putting both in one `Destination` enum would close the destination when the overlay opens.
+
+```swift
+@Reducer
+public struct ChapterReducer {
+
+    @Reducer
+    public enum Destination {
+        case stepDetail(StepDetailReducer)
+        case quiz(QuizReducer)
+    }
+
+    @ObservableState
+    public struct State: Equatable {
+        @Presents public var destination: Destination.State?
+        // Independent second @Presents — does NOT replace destination
+        @Presents public var mapOverlay: MapReducer.State?
+    }
+
+    public enum Action {
+        case destination(PresentationAction<Destination.Action>)
+        case mapOverlay(PresentationAction<MapReducer.Action>)
+        // Open overlay in response to a child delegate:
+        case .destination(.presented(.stepDetail(.delegate(.openMap)))):
+            // destination stays open; overlay appears on top
+            state.mapOverlay = MapReducer.State()
+            return .none
+    }
+
+    public var body: some ReducerOf<Self> {
+        Reduce { state, action in ... }
+        .ifLet(\.$destination, action: \.destination)
+        .ifLet(\.$mapOverlay, action: \.mapOverlay) {
+            MapReducer()
+        }
+    }
+}
+```
+
+**View — use a wrapper view with `@Environment(\.dismiss)` for the overlay's "Done" button:**
+
+```swift
+// In ChapterView:
+.fullScreenCover(
+    item: $store.scope(state: \.mapOverlay, action: \.mapOverlay)
+) { overlayStore in
+    MapDismissableView(store: overlayStore)
+}
+
+private struct MapDismissableView: View {
+    let store: StoreOf<MapReducer>
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        MapView(store: store)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }   // ← @Environment, NOT store.send()
+                }
+            }
+    }
+}
+```
+
+**Critical — never send a dismiss action from the overlay view:**
+When the user taps "Done", SwiftUI calls `@Environment(\.dismiss)`. TCA's `.ifLet` detects the presentation was dismissed and nils `mapOverlay` automatically. If instead the view sends an action (e.g. `.closeTapped`) that nils the state, and then SwiftUI fires `.onDisappear` which sends another action — that second action arrives after state is already nil, producing the warning `"ifLet received a presentation action when destination state was absent"`.
+
+---
+
+## 9. Bundle parameter for resource loading
+
+`Bundle.module` only resolves correctly inside the module that owns the `Resources/` directory. When a shared component module (Layer 2) loads content that lives in a feature module's (Layer 3) `Resources/`, the feature must pass its bundle to the child reducer at initialization time.
+
+```swift
+// In the feature reducer (Layer 3) — passes its own bundle to the child:
+case .itemTapped(let metadata):
+    state.destination = .detail(
+        DetailReducer.State(itemId: metadata.id, bundle: .module)  // .module = feature's bundle
+    )
+    return .none
+```
+
+```swift
+// In the shared component reducer (Layer 2) — stores bundle, passes to client:
+@ObservableState
+public struct State: Equatable {
+    public let itemId: UUID
+    public let bundle: Bundle           // received from parent — NOT Bundle.module
+
+    public init(itemId: UUID, bundle: Bundle) {
+        self.itemId = itemId
+        self.bundle = bundle
+    }
+}
+
+// Effect captures bundle:
+return .run { [itemId = state.itemId, bundle = state.bundle, client] send in
+    await send(.loaded(Result { try await client.fetchItem(itemId, bundle) }))
+}
+```
+
+`Bundle` is `Sendable` — safe to capture in `.run` closures. This pattern keeps the shared component decoupled: it doesn't hardcode any module's bundle, it just uses whatever the caller provides.

@@ -15,33 +15,37 @@ description: >
 ## Quick Start
 
 ```bash
-# Ensure skills are up to date, then run:
-gemini skills install [TCA_DEVELOPER_BASE] && gemini skills enable tca-developer
+gemini skills install <TCA_DEVELOPER_SKILL_PATH> && gemini skills enable tca-developer
 cd [PROJECT_ROOT] && gemini --approval-mode yolo "Use the tca-developer skill to implement [FEATURE_NAME]. ..."
 ```
 
 ---
 
-## Check & Update Skills
+## Sibling Skill Paths
 
-Always reinstall before running — this ensures the latest version is active (install is idempotent;
-it updates if already present):
+This skill is part of a plugin. The other skills (`tca-developer`, `tca-architect`, `ios-simulator`)
+are installed in the **same plugin directory** as this skill.
+
+Derive their absolute paths by replacing the last path component of this skill's base directory:
+
+- This skill's base: `.../skills/gemini-agent/`
+- tca-developer:     `.../skills/tca-developer/`
+- ios-simulator:     `.../skills/ios-simulator/`
+
+Use the resolved absolute path wherever `<SKILL_PATH>` appears below.
+
+Install a skill (idempotent — safe to re-run after updating skill source):
 
 ```bash
-gemini skills install [TCA_DEVELOPER_BASE]
+gemini skills install <TCA_DEVELOPER_SKILL_PATH>
 gemini skills enable tca-developer
+gemini skills list   # confirm it appears and is enabled
 ```
 
-Confirm it is active:
+Only install `ios-simulator` when simulator testing is requested:
 
 ```bash
-gemini skills list   # tca-developer should appear and be enabled
-```
-
-**ios-simulator** (only when simulator testing is requested):
-
-```bash
-gemini skills install [IOS_SIMULATOR_BASE]
+gemini skills install <IOS_SIMULATOR_SKILL_PATH>
 gemini skills enable ios-simulator
 ```
 
@@ -72,10 +76,13 @@ Identify `[REFERENCE_FEATURE]` by listing `Sources/` and picking the nearest exi
 
 ### iOS Simulator Automation
 
+The `ios_sim.py` script is at `<IOS_SIMULATOR_SKILL_PATH>/scripts/ios_sim.py`. Resolve this path
+from this skill's base directory before running.
+
 ```bash
 gemini --approval-mode yolo \
   "Use the ios-simulator skill to [TASK]. \
-   Simulator script: [IOS_SIMULATOR_BASE]/scripts/ios_sim.py. Print a summary when done."
+   Simulator script: <IOS_SIMULATOR_SKILL_PATH>/scripts/ios_sim.py. Print a summary when done."
 ```
 
 ---
@@ -87,7 +94,7 @@ cd [PROJECT_ROOT] && gemini --approval-mode yolo \
   "Use the tca-developer skill to implement [FEATURE_NAME]. \
    Validate with: [TEST_COMMAND]. \
    Then use the ios-simulator skill to verify the UI. \
-   Simulator script: [IOS_SIMULATOR_BASE]/scripts/ios_sim.py. Print a summary."
+   Simulator script: <IOS_SIMULATOR_SKILL_PATH>/scripts/ios_sim.py. Print a summary."
 ```
 
 ---

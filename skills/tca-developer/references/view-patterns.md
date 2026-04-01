@@ -10,6 +10,7 @@
 7. [State-driven animation](#7-state-driven-animation)
 8. [Alerts (TCA-managed)](#8-alerts-tca-managed)
 9. [Preview data helpers](#9-preview-data-helpers)
+10. [UIViewRepresentable (last resort)](#10-uiviewrepresentable-last-resort)
 
 ---
 
@@ -342,3 +343,65 @@ extension Certificate {
 ```
 
 Using fixed UUIDs (`UUID(uuidString:)`) makes previews stable across re-renders.
+
+---
+
+## 10. UIViewRepresentable (last resort)
+
+**Default rule:** Use vanilla SwiftUI. Only reach for `UIViewRepresentable` when SwiftUI has no equivalent — e.g. `MKMapView`, `WKWebView`, `MTKView`, `UIActivityViewController`. Never wrap a UIKit component just for styling convenience (custom shadows, fonts, etc.) — SwiftUI can handle those.
+
+When you must use it, keep the wrapper thin: pass data in via value-type bindings/closures, never via shared reference types.
+
+```swift
+// ✅ Correct — thin wrapper, value-type data in, callbacks out
+struct MapView: UIViewRepresentable {
+    let region: MKCoordinateRegion
+    let annotations: [MapAnnotation]
+    var onRegionChanged: (MKCoordinateRegion) -> Void
+
+    func makeUIView(context: Context) -> MKMapView {
+        let map = MKMapView()
+        map.delegate = context.coordinator
+        return map
+    }
+
+    func updateUIView(_ map: MKMapView, context: Context) {
+        // Apply value-type state changes — check before mutating to avoid feedback loops
+        if map.region.center.latitude != region.center.latitude {
+            map.setRegion(region, animated: true)
+        }
+        map.removeAnnotations(map.annotations)
+        map.addAnnotations(annotations.map(\.mkAnnotation))
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(onRegionChanged: onRegionChanged) }
+
+    final class Coordinator: NSObject, MKMapViewDelegate {
+        var onRegionChanged: (MKCoordinateRegion) -> Void
+        init(onRegionChanged: @escaping (MKCoordinateRegion) -> Void) {
+            self.onRegionChanged = onRegionChanged
+        }
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            onRegionChanged(mapView.region)
+        }
+    }
+}
+
+// In the TCA view — store talks to UIViewRepresentable through pure value types:
+MapView(
+    region: store.region,
+    annotations: store.annotations,
+    onRegionChanged: { store.send(.regionChanged($0)) }
+)
+```
+
+**Rules for UIViewRepresentable:**
+- `makeUIView` — one-time setup only; no state reads here
+- `updateUIView` — called on every SwiftUI re-render; guard before mutating UIKit state to avoid infinite loops
+- Never store a reference to `store` inside `Coordinator` — pass closures instead
+- Update `Coordinator` properties in `updateUIView` so closures always capture current values:
+  ```swift
+  func updateUIView(_ view: SomeUIView, context: Context) {
+      context.coordinator.onSomeEvent = onSomeEvent   // keep closure fresh
+  }
+  ```

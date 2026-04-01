@@ -280,6 +280,7 @@ extension DependencyValues {
 | Stateless API/service wrapper | `@DependencyClient` macro |
 | Need custom `unimplemented` messages | Manual struct |
 | In-process stateful store (cache, DB) | Actor conforming to `DependencyKey` |
+| Streaming/observable values over time | `AsyncStream` property on the client struct |
 | Testing: override one method | `withDependencies { $0.client.fetch = { ... } }` |
 | Preview: full mock | Static `.mock` on the client struct |
 
@@ -287,3 +288,97 @@ extension DependencyValues {
 - Start with `@DependencyClient` — it's the least boilerplate
 - Switch to manual struct only if you need custom test error messages or `unimplemented` is unavailable
 - Use an actor when the dependency holds mutable state shared across the process
+- For reactive/streaming values use `AsyncStream` — never Combine `PassthroughSubject`
+
+---
+
+## 9. Streaming Client with AsyncStream
+
+Use for dependencies that push values over time (location, connectivity, real-time data, cache stats).
+
+```swift
+// Sources/Services/LocationClient.swift
+import Dependencies
+import CoreLocation
+import Models
+
+public struct LocationClient: Sendable {
+    public var streamLocation: @Sendable () -> AsyncStream<CLLocation>
+    public var requestPermission: @Sendable () async -> Void
+}
+
+extension LocationClient: DependencyKey {
+    public static let liveValue = LocationClient(
+        streamLocation: {
+            AsyncStream { continuation in
+                let manager = CLLocationManager()
+                // Delegate keeps manager + continuation alive
+                let delegate = _Delegate(continuation: continuation)
+                manager.delegate = delegate
+                manager.startUpdatingLocation()
+                continuation.onTermination = { _ in
+                    manager.stopUpdatingLocation()
+                }
+                // Prevent delegate from being released
+                _ = delegate
+            }
+        },
+        requestPermission: {
+            // async wrapper around the callback-based API
+        }
+    )
+}
+
+extension LocationClient: TestDependencyKey {
+    public static let testValue = LocationClient(
+        streamLocation: { AsyncStream { _ in } },   // empty stream
+        requestPermission: {}
+    )
+}
+
+// MARK: - Private delegate
+private final class _Delegate: NSObject, CLLocationManagerDelegate, Sendable {
+    let continuation: AsyncStream<CLLocation>.Continuation
+    init(continuation: AsyncStream<CLLocation>.Continuation) {
+        self.continuation = continuation
+    }
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        locations.forEach { continuation.yield($0) }
+    }
+}
+```
+
+**Actor with reactive stats (for cache/DB actors that push updates):**
+
+```swift
+public actor CacheActor {
+    private var continuations: [UUID: AsyncStream<CacheStats>.Continuation] = [:]
+
+    public func observeStats() -> AsyncStream<CacheStats> {
+        let id = UUID()
+        return AsyncStream { [weak self] continuation in
+            Task { await self?.register(id: id, continuation: continuation) }
+            continuation.onTermination = { [weak self, id] _ in
+                Task { await self?.unregister(id: id) }
+            }
+        }
+    }
+
+    private func register(id: UUID, continuation: AsyncStream<CacheStats>.Continuation) {
+        continuations[id] = continuation
+        continuation.yield(currentStats())   // emit current value immediately
+    }
+
+    private func unregister(id: UUID) { continuations.removeValue(forKey: id) }
+
+    private func notifyObservers() {
+        let stats = currentStats()
+        continuations.values.forEach { $0.yield(stats) }
+    }
+}
+```
+
+**Concurrency hierarchy (enforce in all new code):**
+1. `async/await`, `AsyncStream`, Swift `actor` — always first choice
+2. Combine `Publisher` — only when wrapping a third-party API that exclusively vends publishers
+3. `DispatchQueue`, `NSLock`, `os_unfair_lock` — only for legacy C/ObjC callback-only APIs with no async wrapper available
